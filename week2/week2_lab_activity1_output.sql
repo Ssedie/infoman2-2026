@@ -40,8 +40,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE book_flight(p_passenger_id NUMERIC, p_flight_id NUMERIC, p_seat_number VARCHAR)
 AS $$
 BEGIN
-	INSERT INTO bookings(passenger_id, flight_id, seat_number)
-	VALUES(p_passenger_id, p_flight_id, p_seat_number);
+	INSERT INTO bookings(passenger_id, flight_id, seat_number, status, booking_date)
+	VALUES(p_passenger_id, p_flight_id, p_seat_number, 'Confirmed', CURRENT_DATE);
 END;
 
 $$  LANGUAGE plpgsql
