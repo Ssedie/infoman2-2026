@@ -1,6 +1,6 @@
 # i RECORDED TIMES
 
-Initial Data Insertion Time (1,000,000 rows): 0.258ms
+Initial Data Insertion Time (100,000 rows): 175.309ms
 
 Query Execution Time (Non-Indexed): 6.744ms
 
@@ -14,7 +14,7 @@ Single Row Insertion Time (With Index): 6.538ms
 - The query execution time changed drastically, becoming faster by almost 90%.
 
 2. Why do you think the query performance changed as you observed?
-- Because it applied the prnciple 
+- Because it applied the b-tree indexing strategy, instead of scanning the entirety of the table, it skips certain parts because of its sorted data.
 
 3. What is the trade-off of having an index on a table? (Hint: Compare the initial bulk insertion time with the single row insertion time after the index was created).
 - The trade-off for having an index on a table is that, when it comes to write process, such as INSERT the time that it will take to execute is much slower.
