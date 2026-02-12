@@ -3,7 +3,7 @@
 # Scenario 1: The Slow Author Profile Page
 
 ## Before Query Plan and Execution
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title FROM posts WHERE author_id = 1 ORDER BY date DESC;
 QUERY PLAN
 -------------------------------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ QUERY PLAN
 
 
 ## After Query Plan and Execution:
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title FROM posts WHERE author_id = 1 ORDER BY date DESC;
 QUERY PLAN    
 --------------------------------------------------------------------------------------------------------------------------------------
@@ -57,74 +57,68 @@ QUERY PLAN
 
 ## Before Query Plan and Execution Times
 
-```txt
-EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE '%dolor%';
-QUERY PLAN                       
----------------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using idx_title_post on posts  (cost=0.29..515.28 rows=1212 width=44) (actual time=0.159..4.061 rows=2015.00 loops=1)
-   Filter: ((title)::text ~~ '%dolor%'::text)
-   Rows Removed by Filter: 7985
-   Heap Fetches: 0
-   Index Searches: 1
-   Buffers: shared hit=1 read=84
+```sql
+EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE '%Dolor%';
+QUERY PLAN
+---------------------------------------------------------------------------------------------------------
+ Seq Scan on posts  (cost=0.00..625.00 rows=505 width=44) (actual time=0.028..4.195 rows=464.00 loops=1)
+   Filter: ((title)::text ~~ '%Dolor%'::text)
+   Rows Removed by Filter: 9536
+   Buffers: shared hit=500
  Planning:
-   Buffers: shared hit=18 read=1
- Planning Time: 0.654 ms
- Execution Time: 4.175 ms
-(10 rows)
+   Buffers: shared hit=6 dirtied=2
+ Planning Time: 0.681 ms
+ Execution Time: 4.263 ms
+(8 rows)
 ```
 
 ## Query: 
 
-```txt
-EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE 'dolor%';
-QUERY PLAN                       
----------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using idx_title_post on posts  (cost=0.29..515.28 rows=1 width=44) (actual time=1.672..1.673 rows=0.00 loops=1)
-   Filter: ((title)::text ~~ 'dolor%'::text)
-   Rows Removed by Filter: 10000
-   Heap Fetches: 0
-   Index Searches: 1
-   Buffers: shared hit=85
+```sql
+ EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE '%dolor%';
+QUERY PLAN
+------------------------------------------------------------------------------------------------------------
+ Seq Scan on posts  (cost=0.00..625.00 rows=1212 width=44) (actual time=0.958..12.422 rows=2015.00 loops=1)
+   Filter: ((title)::text ~~ '%dolor%'::text)
+   Rows Removed by Filter: 7985
+   Buffers: shared read=500
  Planning:
-   Buffers: shared hit=3
- Planning Time: 0.284 ms
- Execution Time: 1.699 ms
-(10 rows)
+   Buffers: shared hit=32 read=5 dirtied=1
+ Planning Time: 4.512 ms
+ Execution Time: 12.559 ms
+(8 rows)
 ```
 
 
 ## Analysis Questions:
 
 ## First, try adding a standard B-Tree index on the title column. Run EXPLAIN ANALYZE again. Did the planner use your index? Why or why not? Place your answer here
- - The planner did not use my index, because of the LIKE '%dolor%' that checks every middle part of every string . 
+ - The planner did not use the index, because queries using LIKE '%Dolor%' cannot benefit from B-tree indexes. PostgreSQL needs to know where it can start seraching in the index, with a leading %, PostgreSQL does not know where in the sorted index it needs to look, therefore skipping the index and scanning every row.
 ## The business team agrees that searching by a prefix is acceptable for the first version. Rewrite the query to use a prefix search (e.g., database%). Place your answer here
  - 
-```txt
-EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE 'dolor%';
-QUERY PLAN                       
----------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using idx_title_post on posts  (cost=0.29..515.28 rows=1 width=44) (actual time=1.672..1.673 rows=0.00 loops=1)
-   Filter: ((title)::text ~~ 'dolor%'::text)
-   Rows Removed by Filter: 10000
+```sql
+EXPLAIN ANALYZE SELECT title FROM posts WHERE title LIKE 'Dolor%';
+QUERY PLAN                        
+-------------------------------------------------------------------------------------------------------------------------------------
+ Index Only Scan using idx_title_post on posts  (cost=0.29..515.28 rows=505 width=44) (actual time=0.579..2.382 rows=464.00 loops=1)
+   Filter: ((title)::text ~~ 'Dolor%'::text)
+   Rows Removed by Filter: 9536
    Heap Fetches: 0
    Index Searches: 1
    Buffers: shared hit=85
- Planning:
-   Buffers: shared hit=3
- Planning Time: 0.284 ms
- Execution Time: 1.699 ms
-(10 rows)
+ Planning Time: 0.404 ms
+ Execution Time: 2.475 ms
+(8 rows)
 ```
 ## Does the index work for the prefix-style query? Explain the difference in the execution plan. Place your answer here
- - Yes, the execution plan for the first one is to search every title with a dolor in the middle part, while the other is focused on searching titles starting with dolor.
+ - Yes, the index now works for the prefix-style query. With LIKE '%Dolor%', it scans all rows searching for the keyword Dolor in the middle of every string, leading into a total execution time of 12.559ms. On the other hand, LIKE 'Dolor%' uses the index created for title, which greatly reduced the execution time down to 2.475ms. The difference between these two are that the one that uses leading % is always prone to high execution time, which is caused by PostgreSQL needing to scan every row for a word that is in the middle of a string. The one that doesn't use leading % on the other hand, is benefitting from the use of the index created for the column affected by the query.
 
 # Scenario 3: The Monthly Performance Report
 
 ## Before Query Plan and Execution
 
 ## NONS-ARGable
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title, date FROM posts WHERE EXTRACT(YEAR FROM date) = 2015 AND EXTRACT(MONTH FROM date) = 1;
 QUERY PLAN    
 -------------------------------------------------------------------------------------------------------
@@ -140,7 +134,7 @@ QUERY PLAN
 ```
 
 ## S-ARGable
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title, date FROM posts WHERE date >= '2015-01-01' AND date < '2015-02-01';
 QUERY PLAN    
 -------------------------------------------------------------------------------------------------------
@@ -158,7 +152,7 @@ QUERY PLAN
 ## Query
 
 ## NONS-ARGable
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title, date FROM posts WHERE EXTRACT(YEAR FROM date) = 2015 AND EXTRACT(MONTH FROM date) = 1;
 QUERY PLAN    
 -------------------------------------------------------------------------------------------------------
@@ -174,7 +168,7 @@ QUERY PLAN
 ```
 
 ## S-ARGable
-```txt
+```sql
 EXPLAIN ANALYZE SELECT id, title, date FROM posts WHERE date >= '2015-01-01' AND date < '2015-02-01';
 QUERY PLAN                        
 ---------------------------------------------------------------------------------------------------------------------------
@@ -197,7 +191,7 @@ QUERY PLAN
  - The original query used EXTRACT(YEAR FROM date), this is not S-ARGable because PostgreSQL must apply a function to every row's date value before it can filter. Meaning that it cannot use an index created on the date columng. 
 ## Rewrite the query to use a direct date range comparison, making it S-ARGable. Place your answer here
  - 
- ```txt
+ ```sql
 EXPLAIN ANALYZE SELECT id, title, date FROM posts WHERE date >= '2015-01-01' AND date < '2015-02-01';
 QUERY PLAN                        
 ---------------------------------------------------------------------------------------------------------------------------
