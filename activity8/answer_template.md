@@ -245,7 +245,10 @@ SELECT * FROM dw.etl_log ORDER BY run_ts DESC;
 ```
 
 ```txt
--- Paste output here
+           run_ts           | status  | rows_loaded | error_message
+----------------------------+---------+-------------+---------------
+ 2026-03-10 20:26:36.762677 | SUCCESS |          30 |
+(1 row)
 ```
 
 ## Part 4: Analytical Queries
